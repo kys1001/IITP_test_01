@@ -1,0 +1,2 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap');
+:root{--ink:#182431;--muted:#71808c;--line:#d9e1e5;--blue:#176f89;--pale:#eef6f7}*{box-sizing:border-box;padding:0;margin:0}html,body{max-width:100vw;overflow-x:hidden}body{min-height:100%;color:var(--ink);background:#f5f7f6;font-family:'IBM Plex Sans KR',Arial,sans-serif;-webkit-font-smoothing:antialiased}button,textarea,select{font:inherit}button{cursor:pointer}
