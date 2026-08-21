@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import styles from "./page.module.css";
+import { saveReport } from "@/lib/report-storage";
 
 type ReportType = "one-page" | "status";
 type SaveState = "idle" | "saved";
@@ -28,6 +30,7 @@ export default function Home() {
   const [templateMarkdown, setTemplateMarkdown] = useState("");
   const [templateStatus, setTemplateStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [templateError, setTemplateError] = useState("");
+  const [reportSaveState, setReportSaveState] = useState<"idle" | "saved">("idle");
 
   useEffect(() => {
     setOpenaiKey(sessionStorage.getItem("iitp-openai-api-key") ?? "");
@@ -75,6 +78,7 @@ export default function Home() {
     setKeyError("");
     setSearchResults(null);
     setSearchError("");
+    setReportSaveState("idle");
     clearTemplate();
   };
 
@@ -131,8 +135,14 @@ export default function Home() {
 
   const toggleSource = (source: string) => setSources((current) => current.includes(source) ? current.filter((item) => item !== source) : [...current, source]);
 
+  const handleReportSave = () => {
+    if (!searchResults || !isGenerated) return;
+    saveReport({ title: query.trim() ? `${query.trim().slice(0, 42)} 보고서 초안` : "이슈 대응 보고서 초안", query, reportType, period, sources, templateFileName: templateFileName || undefined, openai: searchResults.openai, gemini: searchResults.gemini, references: searchResults.sources || [] });
+    setReportSaveState("saved");
+  };
+
   return <div className={styles.page}>
-    <header className={styles.header}><div className={styles.headerInner}><div className={styles.brand}><span className={styles.brandMark}>I</span><span>IITP 평가관리</span></div><div className={styles.headerMeta}><span className={styles.liveDot} /><span>이슈 대응·성과 보고서</span></div></div></header>
+    <header className={styles.header}><div className={styles.headerInner}><Link className={styles.brand} href="/"><span className={styles.brandMark}>I</span><span>IITP 평가관리</span></Link><div className={styles.headerNav}><Link className={styles.navLink} href="/saved-reports">저장된 보고서</Link><div className={styles.headerMeta}><span className={styles.liveDot} /><span>이슈 대응·성과 보고서</span></div></div></div></header>
     <main className={styles.main}>
       <section className={styles.hero}><div><p className={styles.eyebrow}>REPORT DRAFT STUDIO</p><h1>이슈를 입력하면<br /><span>보고서 초안</span>을 만듭니다.</h1><p className={styles.heroCopy}>키워드나 기사 본문을 바탕으로 핵심 현황과 대응 방향을 빠르게 정리해 보세요.</p></div><div className={styles.heroBadge}><span className={styles.badgeIcon}>✦</span><span>AI 초안 생성</span></div></section>
 
@@ -150,7 +160,7 @@ export default function Home() {
         <section className={`${styles.panel} ${styles.resultPanel}`} aria-label="생성 결과"><div className={styles.panelHeader}><div><p className={styles.sectionKicker}>RESULT / PREVIEW</p><h2>생성 결과</h2></div><span className={`${styles.status} ${isGenerated ? styles.statusReady : ""}`}><span />{isSearching ? "검색 중" : isGenerated ? "생성 완료" : "예시 결과"}</span></div>
           {searchError && <p className={styles.keyError} role="alert">{searchError}</p>}
           {searchResults ? <div className={styles.providerResults}>{([['openai', 'OpenAI Web Search'], ['gemini', 'Gemini Google Search']] as const).map(([key, label]) => { const result = searchResults[key]; return <article className={styles.providerCard} key={key}><div className={styles.providerHeader}><strong>{label}</strong><span className={result?.ok ? styles.providerOk : styles.providerFail}>{result?.ok ? "성공" : "실패"}</span></div>{result?.ok ? <p className={styles.providerText}>{result.text}</p> : <p className={styles.providerError}>{result?.error || "이 API 결과가 없습니다."}</p>}</article>; })}<div className={styles.sourcesBox}><p className={styles.resultLabel}>참고 출처</p>{searchResults.sources?.length ? <ol>{searchResults.sources.map((source, index) => <li key={source.url}><span>[{index + 1}]</span> <a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ol> : <p className={styles.resultText}>검색 결과에서 추출된 출처가 없습니다.</p>}</div></div> : <div className={styles.resultCard}><div className={styles.resultTopline}><span>ISSUE RESPONSE BRIEF</span><span>{exampleReport.updated}</span></div><h3>{exampleReport.title}</h3><div className={styles.resultSummary}>{exampleReport.summary}</div><div className={styles.resultSection}><p className={styles.resultLabel}>핵심 포인트</p><ul>{exampleReport.points.map((point) => <li key={point}>{point}</li>)}</ul></div><div className={styles.resultSection}><p className={styles.resultLabel}>대응 방향</p><p className={styles.resultText}>산업 현장의 수요를 반영한 대규모 실증과 인프라 공동 활용을 지원하고, 핵심 기술의 국내 자립도를 높이기 위한 단계별 투자 전략을 마련합니다.</p></div><div className={styles.resultFooter}><span>초안 · 검토 필요</span><span>01 / 01</span></div></div>}
-          <div className={styles.resultActions}><button type="button">복사하기</button><button type="button">다운로드 준비 중</button></div>
+          <div className={styles.resultActions}><button type="button" onClick={handleReportSave} disabled={!isGenerated || reportSaveState === "saved"}>{reportSaveState === "saved" ? "저장 완료" : "보고서 저장"}</button><button type="button">복사하기</button><button type="button">다운로드 준비 중</button></div>
         </section>
       </div>
     </main><footer className={styles.footer}><span>© IITP Evaluation Management</span><span>Draft Studio v0.1</span></footer>
